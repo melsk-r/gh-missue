@@ -238,7 +238,7 @@ class IssueMigrator
         puts "Copying labels..."
         tlabel = "" # nil
         @source_labels.each do |lbl|
-			color_box = hex2rgb("#{lbl.color}") + "  "
+	    color_box = hex2rgb("#{lbl.color}") + "  "
             #puts "[#{lbl.color}]  " + "#{lbl.name}".ljust(20) + ": #{lbl.description}"
             puts "[#{lbl.color}]  " + color_box + "#{lbl.name}".ljust(20) + ": #{lbl.description}"
             #tlabel = {"name": lbl.name, "description": lbl.description, "color": lbl.color}
