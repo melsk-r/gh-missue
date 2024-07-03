@@ -238,7 +238,7 @@ class IssueMigrator
         puts "Copying labels..."
         tlabel = "" # nil
         @source_labels.each do |lbl|
-			color_box = hex2rgb("#{lbl.color}") + "  "
+            color_box = hex2rgb("#{lbl.color}") + "  "
             #puts "[#{lbl.color}]  " + "#{lbl.name}".ljust(20) + ": #{lbl.description}"
             puts "[#{lbl.color}]  " + color_box + "#{lbl.name}".ljust(20) + ": #{lbl.description}"
             #tlabel = {"name": lbl.name, "description": lbl.description, "color": lbl.color}
@@ -253,9 +253,11 @@ class IssueMigrator
     def push_issues
         @issues.reverse!
         n = 0
+		m = 0
         @issues.each do |source_issue|
-            n += 1
-            print "Pushing issue: #{source_issue.number}  (#{n}/#{issues.size})\r"
+            n = n + 1
+			m = m + 1
+            print "Pushing issue: #{source_issue.number}  (#{n}/#{issues.size})\n"
             source_labels = get_source_labels(source_issue)
             source_comments = get_source_comments(source_issue)
 
@@ -263,17 +265,25 @@ class IssueMigrator
             if !source_issue.key?(:pull_request) || source_issue.pull_request.empty?
 
                 # PR#2
-                issue_body = "*Originally created by @#{source_issue.user[:login]} (#{source_issue.html_url}):*\n\n#{source_issue.body}"
+                #issue_body = "*Originally created by @#{source_issue.user[:login]} (#{source_issue.html_url}):*\n\n#{source_issue.body}"
+                issue_body = "*Originally created by #{source_issue.user[:login]} (#{source_issue.html_url}):*\n\n#{source_issue.body}"
                 target_issue = @client.create_issue(@target_repo, source_issue.title, issue_body, {labels: source_labels})
 
-                push_comments(target_issue, source_comments) unless source_comments.empty?
+                push_comments(target_issue, source_comments, m) unless source_comments.empty?
                 
                 # Close target issue IF it was already closed!
                 # ToDo: -k switch!
                 @client.close_issue(@target_repo, target_issue.number) if source_issue.state === 'closed'
             end
             # We need to set a rate limit, even for OA2, it is 0.5 [req/sec]
-            sleep(5) if ( issues.size > 1 ) # [sec]
+#            sleep(5) if ( issues.size > 1 ) # [sec]
+			if m == 13
+				print "Sleep for 300 seconds.\n"
+				sleep(300)
+				m = 0
+			else
+				sleep(10)
+			end
         end
         puts "\n"
     end
@@ -296,9 +306,26 @@ class IssueMigrator
         comments
     end
 
-    def push_comments(target_issue, source_comments)
+    def push_comments(target_issue, source_comments, m)
+		i = 0
+		j = m
         source_comments.each do |cmt|
-            @client.add_comment(@target_repo, target_issue.number, cmt)
+			i = i + 1
+			j = j + 1
+#			commentuser = cmt.user[:login]
+#            @client.add_comment(@target_repo, target_issue.number, cmt)
+#            comment_body = "*Originally created by #{cmt.author_name}:*\n\n#{cmt.body}"
+#            @client.add_comment(@target_repo, target_issue.number, comment_body)
+            print "Adding comment (#{i})\n"
+            comment_body = "*This comment originally might have been created by someone else.*\n\n#{cmt}"
+            @client.add_comment(@target_repo, target_issue.number, comment_body)
+			if j == 13
+				print "Sleep for 300 seconds.\n"
+				sleep(300)
+				j = 0
+			else
+				sleep(10)
+			end
         end
     end
 end
